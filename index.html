@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Leiterspiel</title>
+<style>
+:root {
+  --bg: #fdf6ec;
+  --ink: #2b2320;
+  --accent: #e63946;
+  --accent-2: #2a9d8f;
+  --card: #ffffff;
+  --border: #e4d9c6;
+  --muted: #8a7f70;
+  --good: #2b9348;
+  --bad: #e63946;
+  --ladder: #d8f3dc;
+  --ladder-ink: #1b7a3a;
+  --slide: #ffe0d1;
+  --slide-ink: #b3541e;
+  --easy: #2b9348;
+  --easy-bg: #d8f3dc;
+  --mid: #b3811e;
+  --mid-bg: #fbe9b0;
+  --hard: #c1121f;
+  --hard-bg: #ffd2d2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1712;
+    --ink: #f3ece1;
+    --card: #262019;
+    --border: #3a3226;
+    --muted: #a89a85;
+    --ladder: #16351f;
+    --ladder-ink: #7fe3a0;
+    --slide: #3a2114;
+    --slide-ink: #ffb488;
+    --easy: #7fe3a0;
+    --easy-bg: #16351f;
+    --mid: #f3ce7a;
+    --mid-bg: #423311;
+    --hard: #ff8f8f;
+    --hard-bg: #3a1414;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1712;
+  --ink: #f3ece1;
+  --card: #262019;
+  --border: #3a3226;
+  --muted: #a89a85;
+  --ladder: #16351f;
+  --ladder-ink: #7fe3a0;
+  --slide: #3a2114;
+  --slide-ink: #ffb488;
+  --easy: #7fe3a0;
+  --easy-bg: #16351f;
+  --mid: #f3ce7a;
+  --mid-bg: #423311;
+  --hard: #ff8f8f;
+  --hard-bg: #3a1414;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+  padding: 16px;
+  padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+}
+h1, h2, h3 { text-wrap: balance; margin: 0 0 8px; }
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+.title-row { display: flex; align-items: center; gap: 10px; }
+.title-row .dice-icon { font-size: 1.6em; }
+.subtitle { color: var(--muted); font-size: 0.9em; margin-top: -4px; }
+input[type="text"], input[type="number"] {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--ink); font-size: 1.05em;
+}
+button {
+  font-size: 1.05em; font-weight: 600; padding: 14px 18px; border-radius: 12px;
+  border: none; cursor: pointer; color: #fff; background: var(--accent);
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+button:active { transform: scale(0.97); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.secondary { background: var(--accent-2); }
+button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+.count-row { display: flex; gap: 8px; }
+.count-btn {
+  flex: 1; background: var(--bg); color: var(--ink); border: 2px solid var(--border);
+  font-weight: 700; font-size: 1.2em; padding: 12px;
+}
+.count-btn.active { border-color: var(--accent); background: var(--card); color: var(--accent); }
+.name-row { display: flex; align-items: center; gap: 10px; }
+.name-dot { width: 20px; height: 20px; border-radius: 50%; flex: 0 0 auto; }
+.player-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.player-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); font-size: 0.9em; }
+.player-chip .dot { width: 10px; height: 10px; border-radius: 50%; }
+.turn-banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); }
+.turn-banner strong { font-size: 1.15em; }
+.turn-dot { width: 16px; height: 16px; border-radius: 50%; flex: 0 0 auto; }
+#board {
+  display: grid; gap: 4px; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(6, 1fr);
+  aspect-ratio: 8 / 6; background: var(--border); border-radius: 12px; padding: 4px; overflow: hidden;
+}
+.cell { background: var(--card); border-radius: 6px; position: relative; display: flex; align-items: flex-start; justify-content: flex-start; min-width: 0; min-height: 0; }
+.cell-num { font-size: 0.62em; color: var(--muted); padding: 2px 4px; font-variant-numeric: tabular-nums; }
+.cell-start { outline: 2px dashed var(--accent-2); }
+.cell-finish { background: #ffe082; }
+@media (prefers-color-scheme: dark) { .cell-finish { background: #6b5615; } }
+.cell-ladder { background: var(--ladder); }
+.cell-slide { background: var(--slide); }
+.cell-badge { position: absolute; bottom: 2px; left: 2px; right: 2px; font-size: 0.55em; font-weight: 700; text-align: center; color: var(--muted); }
+.cell-ladder .cell-badge { color: var(--ladder-ink); }
+.cell-slide .cell-badge { color: var(--slide-ink); }
+.token-wrap { position: absolute; top: 12px; left: 2px; right: 2px; display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
+.token { width: 16px; height: 16px; border-radius: 50%; color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.35); flex: 0 0 auto; }
+.token-active { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+#start-area { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 24px; margin-bottom: 4px; }
+.start-area-label { font-size: 0.85em; color: var(--muted); margin-right: 4px; }
+.dice-area { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.dice-face { width: 72px; height: 72px; border-radius: 16px; background: var(--bg); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 2.4em; font-weight: 800; }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 0.85em; }
+.badge-einfach { background: var(--easy-bg); color: var(--easy); }
+.badge-mittel { background: var(--mid-bg); color: var(--mid); }
+.badge-schwer { background: var(--hard-bg); color: var(--hard); }
+.equation { font-size: 1.8em; font-weight: 800; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; margin-top: 10px; }
+.answer-row { display: flex; gap: 8px; margin-top: 14px; }
+.answer-row input { text-align: center; font-size: 1.3em; }
+.feedback { border-radius: 12px; padding: 12px 16px; font-weight: 700; text-align: center; }
+.feedback.correct { background: var(--easy-bg); color: var(--easy); }
+.feedback.wrong { background: var(--hard-bg); color: var(--hard); }
+.winner-banner { text-align: center; padding: 24px; border-radius: 16px; background: #ffe082; font-size: 1.3em; font-weight: 800; }
+@media (prefers-color-scheme: dark) { .winner-banner { background: #6b5615; } }
+.error-text { color: var(--bad); font-size: 0.9em; margin-top: 8px; }
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(20, 15, 10, 0.55);
+  display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+}
+.modal { background: var(--card); border-radius: 18px; padding: 24px; max-width: 380px; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 14px; }
+.modal-btn-row { display: flex; gap: 10px; }
+.modal-btn-row > * { flex: 1; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Setup -->
+  <section id="setup-screen" class="card">
+    <div class="title-row"><span class="dice-icon">🎲</span><h1>Leiterspiel</h1></div>
+    <p class="subtitle">Ein Handy pro Gruppe – abwechselnd würfeln und Aufgaben lösen.</p>
+
+    <h3 style="margin-top:18px;">Wie viele spielt ihr?</h3>
+    <div class="count-row" id="count-row">
+      <button type="button" class="count-btn" data-count="2">2</button>
+      <button type="button" class="count-btn" data-count="3">3</button>
+      <button type="button" class="count-btn" data-count="4">4</button>
+    </div>
+
+    <h3 style="margin-top:18px;">Eure Namen</h3>
+    <div id="name-inputs" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+    <p class="subtitle" style="margin-top:14px;">Die Aufgaben werden automatisch ausgewählt: am Anfang meist leicht, im Verlauf des Spiels werden sie nach und nach schwerer.</p>
+
+    <button id="start-btn" class="secondary" style="margin-top:14px; width:100%;">Los geht's!</button>
+  </section>
+
+  <!-- Spiel -->
+  <section id="game-screen" hidden>
+    <div class="card">
+      <div id="turn-banner" class="turn-banner">
+        <span id="turn-dot" class="turn-dot"></span>
+        <strong id="turn-text">–</strong>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div id="start-area"></div>
+      <div id="board"></div>
+    </div>
+
+    <div id="feedback-banner" class="feedback card" style="margin-top:16px;" hidden></div>
+
+    <div id="equation-card" class="card" style="margin-top:16px;" hidden>
+      <span id="difficulty-badge" class="badge badge-einfach">Leicht</span>
+      <p id="roll-info" class="subtitle" style="margin-top:10px;"></p>
+      <div id="equation-text" class="equation"></div>
+      <div id="answer-form" class="answer-row">
+        <input type="number" id="answer-input" placeholder="x = ?" inputmode="numeric" />
+        <button type="button" id="submit-answer-btn">Prüfen</button>
+      </div>
+      <p id="answer-error" class="error-text" hidden>Bitte eine Zahl eingeben.</p>
+    </div>
+
+    <div id="dice-card" class="card dice-area" style="margin-top:16px;">
+      <div id="dice-face" class="dice-face">🎲</div>
+      <button id="roll-btn">Würfeln</button>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <button id="reset-btn" class="ghost" style="width:100%;">Neues Spiel</button>
+    </div>
+  </section>
+
+  <!-- Sieg -->
+  <section id="win-screen" class="card" hidden>
+    <div class="winner-banner" id="winner-text"></div>
+    <button id="win-reset-btn" class="secondary" style="margin-top:16px; width:100%;">Neues Spiel</button>
+  </section>
+
+</div>
+
+<!-- Bestaetigung: Neues Spiel -->
+<div id="confirm-overlay" class="modal-backdrop" hidden>
+  <div class="modal">
+    <h3 style="margin:0;">Neues Spiel starten?</h3>
+    <p class="subtitle" style="margin:0;">Der aktuelle Spielstand geht verloren.</p>
+    <div class="modal-btn-row">
+      <button id="confirm-no-btn" class="ghost">Abbrechen</button>
+      <button id="confirm-yes-btn">Ja, neues Spiel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Spielbrett-Konfiguration ----------
+const BOARD_SIZE = 48;
+const COLS = 8;
+const LADDERS = { 2: 12, 7: 26, 15: 34, 23: 41, 31: 45 };
+const SLIDES = { 14: 4, 21: 9, 33: 18, 40: 24, 46: 29 };
+const COLORS = ['#e63946', '#2a9d8f', '#457b9d', '#f4a261'];
+const STORAGE_KEY = 'leiterspiel_gruppe_v1';
+
+// ---------- Zustand ----------
+let state = null;
+
+function freshState(names) {
+  return {
+    phase: 'playing',
+    players: names.map((name, i) => ({ name, color: COLORS[i % COLORS.length], position: 0 })),
+    turnIndex: 0,
+    totalRolls: 0,
+    pending: null,
+    lastMessage: null,
+    winnerIndex: null,
+  };
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.players) || !parsed.players.length) return null;
+    return parsed;
+  } catch (e) { return null; }
+}
+function clearState() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+}
+
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function fmtSigned(n) { return n >= 0 ? `+ ${n}` : `- ${Math.abs(n)}`; }
+
+// ---------- Aufgaben ----------
+function pickDifficulty(totalRolls) {
+  const progress = Math.min(1, totalRolls / 24);
+  const weights = {
+    einfach: 70 + (15 - 70) * progress,
+    mittel: 25 + (35 - 25) * progress,
+    schwer: 5 + (50 - 5) * progress,
+  };
+  const total = weights.einfach + weights.mittel + weights.schwer;
+  let r = Math.random() * total;
+  if (r < weights.einfach) return 'einfach';
+  r -= weights.einfach;
+  if (r < weights.mittel) return 'mittel';
+  return 'schwer';
+}
+
+function generateEquation(difficulty) {
+  let a, b, c, d, x, text;
+  if (difficulty === 'mittel') {
+    a = randInt(2, 6); x = randInt(-10, 10); b = randInt(-10, 10);
+    c = a * x + b;
+    text = `${a}x ${fmtSigned(b)} = ${c}`;
+  } else if (difficulty === 'schwer') {
+    a = randInt(2, 6);
+    do { c = randInt(2, 6); } while (c === a);
+    x = randInt(-10, 10); b = randInt(-10, 10);
+    d = a * x + b - c * x;
+    text = `${a}x ${fmtSigned(b)} = ${c}x ${fmtSigned(d)}`;
+  } else {
+    x = randInt(1, 15); a = randInt(1, 15); b = x + a;
+    text = `x + ${a} = ${b}`;
+  }
+  return { text, answer: x, difficulty };
+}
+
+const DIFF_LABEL = { einfach: 'Leicht', mittel: 'Mittel', schwer: 'Schwer' };
+
+// ---------- Brett ----------
+function fieldPosition(fieldIndex) {
+  const totalRows = BOARD_SIZE / COLS;
+  const idx = fieldIndex - 1;
+  const row = Math.floor(idx / COLS);
+  const withinRow = idx % COLS;
+  const col = row % 2 === 0 ? withinRow : COLS - 1 - withinRow;
+  return { gridRow: totalRows - row, gridColumn: col + 1 };
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  const currentId = state.players[state.turnIndex];
+
+  const byField = {};
+  state.players.forEach((p, i) => {
+    const key = p.position === 0 ? 'start' : p.position;
+    if (!byField[key]) byField[key] = [];
+    byField[key].push({ ...p, index: i });
+  });
+
+  for (let i = 1; i <= BOARD_SIZE; i++) {
+    const pos = fieldPosition(i);
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.style.gridRow = pos.gridRow;
+    cell.style.gridColumn = pos.gridColumn;
+
+    const num = document.createElement('span');
+    num.className = 'cell-num';
+    num.textContent = i;
+    cell.appendChild(num);
+
+    if (i === BOARD_SIZE) cell.classList.add('cell-finish');
+    if (i === 1) cell.classList.add('cell-start');
+
+    if (LADDERS[i]) {
+      cell.classList.add('cell-ladder');
+      const badge = document.createElement('span');
+      badge.className = 'cell-badge';
+      badge.textContent = `↑ ${LADDERS[i]}`;
+      cell.appendChild(badge);
+    } else if (SLIDES[i]) {
+      cell.classList.add('cell-slide');
+      const badge = document.createElement('span');
+      badge.className = 'cell-badge';
+      badge.textContent = `↓ ${SLIDES[i]}`;
+      cell.appendChild(badge);
+    }
+
+    const tokens = byField[i];
+    if (tokens) {
+      const wrap = document.createElement('div');
+      wrap.className = 'token-wrap';
+      tokens.forEach((p) => {
+        const t = document.createElement('div');
+        t.className = 'token';
+        t.style.background = p.color;
+        t.textContent = (p.name || '?').trim().slice(0, 1).toUpperCase();
+        if (p.index === state.turnIndex) t.classList.add('token-active');
+        wrap.appendChild(t);
+      });
+      cell.appendChild(wrap);
+    }
+    board.appendChild(cell);
+  }
+
+  const startArea = document.getElementById('start-area');
+  startArea.innerHTML = '';
+  const atStart = byField['start'];
+  if (atStart && atStart.length) {
+    const label = document.createElement('span');
+    label.className = 'start-area-label';
+    label.textContent = 'Am Start:';
+    startArea.appendChild(label);
+    atStart.forEach((p) => {
+      const t = document.createElement('div');
+      t.className = 'token';
+      t.style.background = p.color;
+      t.textContent = (p.name || '?').trim().slice(0, 1).toUpperCase();
+      if (p.index === state.turnIndex) t.classList.add('token-active');
+      startArea.appendChild(t);
+    });
+  }
+}
+
+// ---------- UI-Referenzen ----------
+const el = {
+  setupScreen: document.getElementById('setup-screen'),
+  countRow: document.getElementById('count-row'),
+  nameInputs: document.getElementById('name-inputs'),
+  startBtn: document.getElementById('start-btn'),
+
+  gameScreen: document.getElementById('game-screen'),
+  turnDot: document.getElementById('turn-dot'),
+  turnText: document.getElementById('turn-text'),
+
+  feedbackBanner: document.getElementById('feedback-banner'),
+
+  equationCard: document.getElementById('equation-card'),
+  difficultyBadge: document.getElementById('difficulty-badge'),
+  rollInfo: document.getElementById('roll-info'),
+  equationText: document.getElementById('equation-text'),
+  answerForm: document.getElementById('answer-form'),
+  answerInput: document.getElementById('answer-input'),
+  submitAnswerBtn: document.getElementById('submit-answer-btn'),
+  answerError: document.getElementById('answer-error'),
+
+  diceCard: document.getElementById('dice-card'),
+  diceFace: document.getElementById('dice-face'),
+  rollBtn: document.getElementById('roll-btn'),
+
+  resetBtn: document.getElementById('reset-btn'),
+  winResetBtn: document.getElementById('win-reset-btn'),
+
+  winScreen: document.getElementById('win-screen'),
+  winnerText: document.getElementById('winner-text'),
+
+  confirmOverlay: document.getElementById('confirm-overlay'),
+  confirmYesBtn: document.getElementById('confirm-yes-btn'),
+  confirmNoBtn: document.getElementById('confirm-no-btn'),
+};
+
+let selectedCount = 2;
+
+function buildNameInputs(count) {
+  el.nameInputs.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const row = document.createElement('div');
+    row.className = 'name-row';
+    const dot = document.createElement('span');
+    dot.className = 'name-dot';
+    dot.style.background = COLORS[i % COLORS.length];
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 20;
+    input.placeholder = `Spieler ${i + 1}`;
+    input.id = `name-input-${i}`;
+    row.appendChild(dot);
+    row.appendChild(input);
+    el.nameInputs.appendChild(row);
+  }
+}
+
+el.countRow.addEventListener('click', (e) => {
+  const btn = e.target.closest('.count-btn');
+  if (!btn) return;
+  selectedCount = Number(btn.dataset.count);
+  [...el.countRow.children].forEach((b) => b.classList.toggle('active', b === btn));
+  buildNameInputs(selectedCount);
+});
+
+// Vorauswahl: 2 Spieler
+document.querySelector('.count-btn[data-count="2"]').classList.add('active');
+buildNameInputs(2);
+
+el.startBtn.addEventListener('click', () => {
+  const names = [];
+  for (let i = 0; i < selectedCount; i++) {
+    const input = document.getElementById(`name-input-${i}`);
+    const val = input.value.trim();
+    names.push(val || `Spieler ${i + 1}`);
+  }
+  state = freshState(names);
+  saveState();
+  render();
+});
+
+el.rollBtn.addEventListener('click', () => {
+  if (state.pending) return;
+  const player = state.players[state.turnIndex];
+  const dice = randInt(1, 6);
+  const before = player.position;
+  let after = Math.min(BOARD_SIZE, before + dice);
+  let bonus = null;
+  if (LADDERS[after]) { bonus = 'ladder'; after = LADDERS[after]; }
+  else if (SLIDES[after]) { bonus = 'slide'; after = SLIDES[after]; }
+
+  player.position = after;
+  state.totalRolls += 1;
+  const difficulty = pickDifficulty(state.totalRolls);
+  const q = generateEquation(difficulty);
+  state.pending = { before, after, dice, bonus, difficulty, question: q.text, answer: q.answer };
+  state.lastMessage = null;
+  saveState();
+  render();
+});
+
+function submitAnswer() {
+  if (!state || !state.pending) return;
+  const raw = el.answerInput.value.trim();
+  el.answerError.hidden = true;
+
+  if (raw === '' || Number.isNaN(Number(raw))) {
+    el.answerError.hidden = false;
+    el.answerInput.focus();
+    return;
+  }
+
+  const player = state.players[state.turnIndex];
+  const correct = Number(raw) === state.pending.answer;
+  if (!correct) {
+    player.position = state.pending.before;
+  }
+  state.lastMessage = { correct, correctAnswer: state.pending.answer, playerName: player.name };
+
+  const wonNow = correct && player.position === BOARD_SIZE;
+  state.pending = null;
+
+  if (wonNow) {
+    state.phase = 'finished';
+    state.winnerIndex = state.turnIndex;
+  } else {
+    state.turnIndex = (state.turnIndex + 1) % state.players.length;
+  }
+  saveState();
+  render();
+}
+el.submitAnswerBtn.addEventListener('click', submitAnswer);
+el.answerInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitAnswer();
+  }
+});
+
+function openResetConfirm() {
+  el.confirmOverlay.hidden = false;
+}
+function closeResetConfirm() {
+  el.confirmOverlay.hidden = true;
+}
+function doReset() {
+  clearState();
+  state = null;
+  closeResetConfirm();
+  el.gameScreen.hidden = true;
+  el.winScreen.hidden = true;
+  el.setupScreen.hidden = false;
+}
+el.resetBtn.addEventListener('click', openResetConfirm);
+el.winResetBtn.addEventListener('click', openResetConfirm);
+el.confirmYesBtn.addEventListener('click', doReset);
+el.confirmNoBtn.addEventListener('click', closeResetConfirm);
+
+let feedbackTimer = null;
+
+function render() {
+  if (!state) return;
+
+  if (state.phase === 'finished') {
+    el.setupScreen.hidden = true;
+    el.gameScreen.hidden = true;
+    el.winScreen.hidden = false;
+    const winner = state.players[state.winnerIndex];
+    el.winnerText.textContent = winner ? `🏆 ${winner.name} hat gewonnen!` : 'Spiel beendet';
+    return;
+  }
+
+  el.setupScreen.hidden = true;
+  el.gameScreen.hidden = false;
+  el.winScreen.hidden = true;
+
+  const player = state.players[state.turnIndex];
+  el.turnDot.style.background = player.color;
+  el.turnText.textContent = `${player.name} ist dran`;
+
+  renderBoard();
+
+  if (state.pending) {
+    el.diceCard.hidden = true;
+    el.equationCard.hidden = false;
+
+    const p = state.pending;
+    el.difficultyBadge.className = `badge badge-${p.difficulty}`;
+    el.difficultyBadge.textContent = DIFF_LABEL[p.difficulty];
+
+    let info = `🎲 Wurf: ${p.dice}`;
+    if (p.bonus === 'ladder') info += ` — 🪜 Leiter! Weiter zu Feld ${p.after}`;
+    if (p.bonus === 'slide') info += ` — 🐍 Rutsche! Zurück zu Feld ${p.after}`;
+    el.rollInfo.textContent = info;
+    el.equationText.textContent = p.question;
+    el.answerInput.value = '';
+    el.answerError.hidden = true;
+    el.submitAnswerBtn.disabled = false;
+    setTimeout(() => el.answerInput.focus(), 50);
+  } else {
+    el.equationCard.hidden = true;
+    el.diceCard.hidden = false;
+  }
+
+  if (state.lastMessage) {
+    const msg = state.lastMessage;
+    el.feedbackBanner.classList.remove('correct', 'wrong');
+    if (msg.correct) {
+      el.feedbackBanner.classList.add('correct');
+      el.feedbackBanner.textContent = `✅ Richtig! ${msg.playerName} rückt vor.`;
+    } else {
+      el.feedbackBanner.classList.add('wrong');
+      el.feedbackBanner.textContent = `❌ Falsch! Lösung war x = ${msg.correctAnswer}. ${msg.playerName} fällt zurück.`;
+    }
+    el.feedbackBanner.hidden = false;
+    if (feedbackTimer) clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(() => { el.feedbackBanner.hidden = true; }, 3500);
+  } else {
+    el.feedbackBanner.hidden = true;
+  }
+}
+
+// ---------- Start: gespeichertes Spiel laden, falls vorhanden ----------
+const restored = loadState();
+if (restored) {
+  state = restored;
+  render();
+}
+</script>
+</body>
+</html>
