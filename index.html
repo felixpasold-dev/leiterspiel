@@ -131,13 +131,30 @@ button.ghost { background: transparent; color: var(--ink); border: 1px solid var
 .badge-mittel { background: var(--mid-bg); color: var(--mid); }
 .badge-schwer { background: var(--hard-bg); color: var(--hard); }
 .equation { font-size: 1.8em; font-weight: 800; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; margin-top: 10px; }
-.answer-row { display: flex; gap: 8px; margin-top: 14px; }
-.answer-row input { text-align: center; font-size: 1.3em; }
+.answer-display-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; }
+.answer-label { font-size: 1.3em; font-weight: 700; color: var(--muted); }
+.answer-display {
+  min-width: 110px; text-align: center; padding: 10px 16px; border-radius: 10px;
+  border: 2px solid var(--border); background: var(--bg); color: var(--ink);
+  font-size: 1.5em; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.answer-display.placeholder { color: var(--muted); font-weight: 600; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.key {
+  background: var(--bg); color: var(--ink); border: 1px solid var(--border);
+  font-size: 1.3em; font-weight: 700; padding: 14px 0; min-height: 52px; border-radius: 10px;
+}
+.key-sign, .key-back { background: var(--border); font-size: 1.2em; }
 .feedback { border-radius: 12px; padding: 12px 16px; font-weight: 700; text-align: center; }
 .feedback.correct { background: var(--easy-bg); color: var(--easy); }
 .feedback.wrong { background: var(--hard-bg); color: var(--hard); }
 .winner-banner { text-align: center; padding: 24px; border-radius: 16px; background: #ffe082; font-size: 1.3em; font-weight: 800; }
 @media (prefers-color-scheme: dark) { .winner-banner { background: #6b5615; } }
+.standing-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); }
+.standing-row .medal { font-size: 1.2em; width: 28px; text-align: center; }
+.standing-row .dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+.standing-row .standing-name { font-weight: 700; flex: 1; }
+.standing-row .standing-pos { color: var(--muted); font-variant-numeric: tabular-nums; }
 .error-text { color: var(--bad); font-size: 0.9em; margin-top: 8px; }
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(20, 15, 10, 0.55);
@@ -192,10 +209,25 @@ button.ghost { background: transparent; color: var(--ink); border: 1px solid var
       <span id="difficulty-badge" class="badge badge-einfach">Leicht</span>
       <p id="roll-info" class="subtitle" style="margin-top:10px;"></p>
       <div id="equation-text" class="equation"></div>
-      <div id="answer-form" class="answer-row">
-        <input type="number" id="answer-input" placeholder="x = ?" inputmode="numeric" />
-        <button type="button" id="submit-answer-btn">Prüfen</button>
+      <div class="answer-display-row">
+        <span class="answer-label">x =</span>
+        <div id="answer-display" class="answer-display placeholder">?</div>
       </div>
+      <div class="keypad" id="keypad">
+        <button type="button" class="key" data-digit="7">7</button>
+        <button type="button" class="key" data-digit="8">8</button>
+        <button type="button" class="key" data-digit="9">9</button>
+        <button type="button" class="key" data-digit="4">4</button>
+        <button type="button" class="key" data-digit="5">5</button>
+        <button type="button" class="key" data-digit="6">6</button>
+        <button type="button" class="key" data-digit="1">1</button>
+        <button type="button" class="key" data-digit="2">2</button>
+        <button type="button" class="key" data-digit="3">3</button>
+        <button type="button" class="key key-sign" id="sign-key">±</button>
+        <button type="button" class="key" data-digit="0">0</button>
+        <button type="button" class="key key-back" id="backspace-key">⌫</button>
+      </div>
+      <button type="button" id="submit-answer-btn" class="secondary" style="width:100%; margin-top:14px;">Prüfen</button>
       <p id="answer-error" class="error-text" hidden>Bitte eine Zahl eingeben.</p>
     </div>
 
@@ -212,6 +244,8 @@ button.ghost { background: transparent; color: var(--ink); border: 1px solid var
   <!-- Sieg -->
   <section id="win-screen" class="card" hidden>
     <div class="winner-banner" id="winner-text"></div>
+    <h3 style="margin-top:20px;">Endstand</h3>
+    <div id="final-standings" style="display:flex; flex-direction:column; gap:8px;"></div>
     <button id="win-reset-btn" class="secondary" style="margin-top:16px; width:100%;">Neues Spiel</button>
   </section>
 
@@ -233,8 +267,9 @@ button.ghost { background: transparent; color: var(--ink); border: 1px solid var
 // ---------- Spielbrett-Konfiguration ----------
 const BOARD_SIZE = 48;
 const COLS = 8;
-const LADDERS = { 2: 12, 7: 26, 15: 34, 23: 41, 31: 45 };
-const SLIDES = { 14: 4, 21: 9, 33: 18, 40: 24, 46: 29 };
+// Leitern springen max. 8 Felder nach vorn, Rutschen max. 3 Felder zurueck.
+const LADDERS = { 3: 11, 10: 17, 19: 25, 28: 35, 38: 45 };
+const SLIDES = { 8: 5, 16: 14, 24: 21, 33: 30, 42: 40 };
 const COLORS = ['#e63946', '#2a9d8f', '#457b9d', '#f4a261'];
 const STORAGE_KEY = 'leiterspiel_gruppe_v1';
 
@@ -413,8 +448,8 @@ const el = {
   difficultyBadge: document.getElementById('difficulty-badge'),
   rollInfo: document.getElementById('roll-info'),
   equationText: document.getElementById('equation-text'),
-  answerForm: document.getElementById('answer-form'),
-  answerInput: document.getElementById('answer-input'),
+  answerDisplay: document.getElementById('answer-display'),
+  keypad: document.getElementById('keypad'),
   submitAnswerBtn: document.getElementById('submit-answer-btn'),
   answerError: document.getElementById('answer-error'),
 
@@ -427,6 +462,7 @@ const el = {
 
   winScreen: document.getElementById('win-screen'),
   winnerText: document.getElementById('winner-text'),
+  finalStandings: document.getElementById('final-standings'),
 
   confirmOverlay: document.getElementById('confirm-overlay'),
   confirmYesBtn: document.getElementById('confirm-yes-btn'),
@@ -498,19 +534,48 @@ el.rollBtn.addEventListener('click', () => {
   render();
 });
 
-function submitAnswer() {
-  if (!state || !state.pending) return;
-  const raw = el.answerInput.value.trim();
+// ---------- Eigene Zahlentastatur (damit auch "-" eingebbar ist) ----------
+let answerBuffer = '';
+
+function updateAnswerDisplay() {
+  const hasValue = answerBuffer !== '';
+  el.answerDisplay.textContent = hasValue ? answerBuffer : '?';
+  el.answerDisplay.classList.toggle('placeholder', !hasValue);
+}
+
+function resetAnswerBuffer() {
+  answerBuffer = '';
+  updateAnswerDisplay();
+}
+
+el.keypad.addEventListener('click', (e) => {
+  const btn = e.target.closest('.key');
+  if (!btn) return;
   el.answerError.hidden = true;
 
-  if (raw === '' || Number.isNaN(Number(raw))) {
+  if (btn.dataset.digit !== undefined) {
+    const digitsOnly = answerBuffer.replace('-', '');
+    if (digitsOnly.length >= 3) return; // reicht fuer alle Aufgaben in diesem Spiel
+    answerBuffer = answerBuffer === '0' ? btn.dataset.digit : answerBuffer + btn.dataset.digit;
+  } else if (btn.id === 'sign-key') {
+    answerBuffer = answerBuffer.startsWith('-') ? answerBuffer.slice(1) : '-' + answerBuffer;
+  } else if (btn.id === 'backspace-key') {
+    answerBuffer = answerBuffer.slice(0, -1);
+  }
+  updateAnswerDisplay();
+});
+
+function submitAnswer() {
+  if (!state || !state.pending) return;
+  el.answerError.hidden = true;
+
+  if (answerBuffer === '' || answerBuffer === '-' || Number.isNaN(Number(answerBuffer))) {
     el.answerError.hidden = false;
-    el.answerInput.focus();
     return;
   }
 
   const player = state.players[state.turnIndex];
-  const correct = Number(raw) === state.pending.answer;
+  const correct = Number(answerBuffer) === state.pending.answer;
   if (!correct) {
     player.position = state.pending.before;
   }
@@ -529,12 +594,6 @@ function submitAnswer() {
   render();
 }
 el.submitAnswerBtn.addEventListener('click', submitAnswer);
-el.answerInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    submitAnswer();
-  }
-});
 
 function openResetConfirm() {
   el.confirmOverlay.hidden = false;
@@ -566,6 +625,23 @@ function render() {
     el.winScreen.hidden = false;
     const winner = state.players[state.winnerIndex];
     el.winnerText.textContent = winner ? `🏆 ${winner.name} hat gewonnen!` : 'Spiel beendet';
+
+    const medals = ['🥇', '🥈', '🥉'];
+    const ranked = state.players
+      .map((p) => p)
+      .sort((a, b) => b.position - a.position);
+    el.finalStandings.innerHTML = '';
+    ranked.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.className = 'standing-row';
+      row.innerHTML = `
+        <span class="medal">${medals[i] || (i + 1) + '.'}</span>
+        <span class="dot" style="background:${p.color}"></span>
+        <span class="standing-name">${p.name}</span>
+        <span class="standing-pos">Feld ${p.position}</span>
+      `;
+      el.finalStandings.appendChild(row);
+    });
     return;
   }
 
@@ -592,10 +668,8 @@ function render() {
     if (p.bonus === 'slide') info += ` — 🐍 Rutsche! Zurück zu Feld ${p.after}`;
     el.rollInfo.textContent = info;
     el.equationText.textContent = p.question;
-    el.answerInput.value = '';
+    resetAnswerBuffer();
     el.answerError.hidden = true;
-    el.submitAnswerBtn.disabled = false;
-    setTimeout(() => el.answerInput.focus(), 50);
   } else {
     el.equationCard.hidden = true;
     el.diceCard.hidden = false;
